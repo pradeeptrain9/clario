@@ -33,3 +33,30 @@ describe('ruleParse', () => {
     expect(ruleParse('send money to maria').kind).toBe('unknown'); // no amount
   });
 });
+
+describe('parseControl: affirmative phrases', () => {
+  // A confirmation must stay bare, but "bare" means carrying no payment information --
+  // not literally one word. Rejecting "yes go ahead" left users unable to confirm.
+  it.each(['yes go ahead', 'yes please', 'yeah go ahead', 'ok yes', 'yes do it', 'yes that is right', 'yes send it'])(
+    'reads %s as a bare yes', (t) => { expect(parseControl(t)).toBe('yes'); });
+
+  it.each(['yes', 'yeah', 'yep', 'go ahead', 'do it', 'send it'])('still reads %s as yes', (t) => {
+    expect(parseControl(t)).toBe('yes');
+  });
+
+  it.each(['no', 'nope', 'nah'])('still reads %s as no', (t) => { expect(parseControl(t)).toBe('no'); });
+
+  // The property this must never break: nothing can ride in on a confirmation.
+  it.each([
+    'yes send five hundred dollars',
+    'yes and also send five hundred dollars to maria',
+    'yes send it to maria',
+    'yes pay the landlord',
+    'yes twenty dollars',
+  ])('refuses %s, which carries new content', (t) => { expect(parseControl(t)).not.toBe('yes'); });
+
+  // A yes next to a no is ambiguous; ask again rather than pick one.
+  it.each(['yes no', 'no yes', 'yes cancel', 'yes wait'])('treats %s as unclear', (t) => {
+    expect(parseControl(t)).not.toBe('yes');
+  });
+});
