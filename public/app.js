@@ -7,6 +7,8 @@ let rate = 1;
 let lastSpoken = '';
 let polling = null;
 let listening = false;
+// speechSynthesis.speaking is unreliable right after cancel(), so track playback ourselves.
+let speaking = false;
 
 const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
 const synth = window.speechSynthesis;
@@ -43,7 +45,9 @@ function speak(text) {
   synth.cancel();
   return new Promise((resolve) => {
     const u = new SpeechSynthesisUtterance(text);
-    u.rate = rate; u.onend = u.onerror = () => resolve();
+    u.rate = rate;
+    u.onend = u.onerror = () => { speaking = false; resolve(); };
+    speaking = true;
     synth.speak(u);
   });
 }
@@ -97,7 +101,10 @@ function listen() {
     return;
   }
   if (listening) return;
-  synth?.cancel(); // pressing the button is an intentional barge-in
+  // Pressing the button is an intentional barge-in: our audio is cut, so what the mic
+  // hears next is the user, not us.
+  synth?.cancel();
+  speaking = false;
   const rec = new SR();
   rec.lang = 'en-US'; rec.interimResults = false; rec.maxAlternatives = 1; rec.continuous = false;
   let handled = false;
@@ -106,7 +113,7 @@ function listen() {
     handled = true;
     const r = ev.results[ev.results.length - 1], alt = r[0];
     // If our own voice is still playing when the result lands, the mic may have heard us, not the user.
-    send(alt.transcript, { confidence: alt.confidence || undefined, isFinal: r.isFinal, duringPlayback: !!synth?.speaking });
+    send(alt.transcript, { confidence: alt.confidence || undefined, isFinal: r.isFinal, duringPlayback: speaking });
   };
   rec.onerror = (e) => { if (!handled && e.error !== 'aborted') speak(e.error === 'no-speech' ? 'I did not hear anything.' : 'I could not use the microphone.'); };
   rec.onend = () => { listening = false; talk.setAttribute('aria-pressed', 'false'); label.textContent = 'Talk'; };

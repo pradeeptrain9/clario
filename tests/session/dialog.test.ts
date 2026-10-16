@@ -57,6 +57,14 @@ describe('Dialog: ordinary payments', () => {
     expect(await s.balance()).toBe(start);
   });
 
+  it('accepts an emphatic yes at confirmation', async () => {
+    const s = setup();
+    await s.say('send twenty dollars to priya');
+    const done = await s.say('yes go ahead');
+    expect(done.say).not.toMatch(/just yes/i);
+    expect(done.say).toMatch(/sent|on its way|done/i);
+  });
+
   it('does not accept a yes that smuggles in extra content', async () => {
     const s = setup();
     const start = await s.balance();

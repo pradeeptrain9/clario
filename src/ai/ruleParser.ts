@@ -17,12 +17,32 @@ const CONTROLS: [RegExp, Control][] = [
 ];
 
 /**
+ * Words that add emphasis or politeness to a yes but carry no payment information. An utterance
+ * built only from these plus an affirmative is still a bare yes: "yes go ahead", "yes please".
+ */
+const AFFIRM_CORE = new Set(['yes', 'yeah', 'yep', 'yup', 'confirm', 'confirmed', 'correct', 'affirmative']);
+const AFFIRM_FILLER = new Set([
+  'ok', 'okay', 'okey', 'sure', 'please', 'go', 'ahead', 'do', 'it', 'send', 'that', 'is', 's',
+  'right', 'now', 'just', 'and', 'then', 'fine', 'alright', 'good', 'thanks', 'thank', 'you', 'all',
+]);
+/** Anything negative or hesitant in the utterance means we ask again rather than read it as a yes. */
+const NEGATIVE = new Set(['no', 'nope', 'nah', 'not', 'dont', 'don', 't', 'cancel', 'stop', 'wait', 'hold', 'never', 'abort']);
+
+/**
  * Whole-utterance match only. "yes send five hundred dollars" is NOT a yes: confirmations must be
- * bare, so extra content can never ride in on one.
+ * bare, so extra content can never ride in on one. An utterance made purely of affirmative and
+ * filler words is bare in that sense -- there is nothing in it to smuggle.
  */
 export function parseControl(text: string): Control | null {
   const t = norm(text);
   for (const [re, cmd] of CONTROLS) if (re.test(t)) return cmd;
+
+  const words = t.split(' ').filter(Boolean);
+  if (words.length > 1 && words.length <= 6 && !words.some((w) => NEGATIVE.has(w))
+      && words.some((w) => AFFIRM_CORE.has(w))
+      && words.every((w) => AFFIRM_CORE.has(w) || AFFIRM_FILLER.has(w))) {
+    return 'yes';
+  }
   return null;
 }
 
