@@ -10,6 +10,7 @@ const schema = z.object({
   GEMINI_API_KEY: z.string().default(''),
   GEMINI_FAST_MODEL: z.string().default('gemini-flash-latest'),
   GEMINI_REVIEW_MODEL: z.string().default('gemini-pro-latest'),
+  HF_TOKEN: z.string().default(''),
   PAYPAL_CLIENT_ID: z.string().default(''),
   PAYPAL_CLIENT_SECRET: z.string().default(''),
   PAYPAL_API_BASE: z.string().url().default('https://api-m.sandbox.paypal.com'),
@@ -19,7 +20,12 @@ export type Config = z.infer<typeof schema>;
 
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
   // The Google SDK conventionally reads GOOGLE_API_KEY; accept either name.
-  const merged = { ...env, GEMINI_API_KEY: env.GEMINI_API_KEY || env.GOOGLE_API_KEY || '' };
+  // Hugging Face tooling reads HF_TOKEN now and HUGGING_FACE_HUB_TOKEN historically.
+  const merged = {
+    ...env,
+    GEMINI_API_KEY: env.GEMINI_API_KEY || env.GOOGLE_API_KEY || '',
+    HF_TOKEN: env.HF_TOKEN || env.HUGGING_FACE_HUB_TOKEN || '',
+  };
   const cfg = schema.parse(merged);
   if (cfg.MODE === 'sandbox' && (!cfg.PAYPAL_CLIENT_ID || !cfg.PAYPAL_CLIENT_SECRET)) {
     throw new Error('MODE=sandbox requires PAYPAL_CLIENT_ID and PAYPAL_CLIENT_SECRET');
@@ -33,3 +39,4 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
 
 export const config = loadConfig();
 export const hasGemini = () => config.GEMINI_API_KEY.length > 0;
+export const hasHuggingFace = () => config.HF_TOKEN.length > 0;
