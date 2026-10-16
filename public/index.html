@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Clario</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <a class="skip" href="#talk">Skip to the talk button</a>
+  <header>
+    <h1>Clario</h1>
+    <p id="mode" class="badge" role="status">Connecting…</p>
+  </header>
+
+  <main>
+    <button id="talk" type="button" aria-describedby="hint">
+      <span id="talk-label">Talk</span>
+    </button>
+    <p id="hint">Press the button or the space bar, then speak. Say “help” to hear what I can do.</p>
+
+    <form id="typed" autocomplete="off">
+      <label for="text">Or type a request</label>
+      <div class="row">
+        <input id="text" name="text" type="text" maxlength="500" enterkeyhint="send">
+        <button type="submit">Send</button>
+      </div>
+    </form>
+
+    <p id="hold" hidden></p>
+    <ol id="log" role="log" aria-live="off" aria-label="Conversation"></ol>
+  </main>
+
+  <script src="app.js" type="module"></script>
+</body>
+</html>
