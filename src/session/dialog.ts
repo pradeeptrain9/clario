@@ -393,7 +393,12 @@ export class Dialog {
 
     if (/\b(balance|funds|how much (money|cash)?.{0,20}\b(have|got|left|available))\b/.test(t)) {
       if (!snap.balances.length) return this.reply('I could not find a balance on this account.', 'command');
-      return this.reply(`Your PayPal balance is ${snap.balances.map((b) => money(b.available, b.currency)).join(', and ')}.`, 'command', { band: 'read' });
+      // Say when the figure already accounts for a payment PayPal has not caught up on, so it does
+      // not look wrong against PayPal's own screens.
+      const lag = snap.pendingOut > 0
+        ? ` That already takes off ${money(snap.pendingOut, cur)} you sent recently, which PayPal has not finished recording.`
+        : '';
+      return this.reply(`Your PayPal balance is ${snap.balances.map((b) => money(b.available, b.currency)).join(', and ')}.${lag}`, 'command', { band: 'read' });
     }
 
     const days = /\btoday\b/.test(t) ? 1 : /\bweek\b/.test(t) ? 7 : /\byear\b/.test(t) ? 365 : 30;
@@ -405,7 +410,7 @@ export class Dialog {
       const total = out.reduce((a, x) => a + x.amount, 0);
       if (!out.length) return this.reply(`I see no spending ${label}.`, 'command', { band: 'read' });
       const top = topPayees(out).slice(0, 3).map(([n, v]) => `${this.speakName(n)}, ${money(round2(v), cur)}`).join('; ');
-      return this.reply(`You spent ${money(round2(total), cur)} ${label}, across ${out.length} payments. Biggest: ${top}.`, 'command', { band: 'read' });
+      return this.reply(`You spent ${money(round2(total), cur)} ${label}, across ${out.length} ${out.length === 1 ? 'payment' : 'payments'}. Biggest: ${top}.`, 'command', { band: 'read' });
     }
 
     if (!/\b(recent|latest|last|history|transactions?|activity|payments?)\b/.test(t)) {
