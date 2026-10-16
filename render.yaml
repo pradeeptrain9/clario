@@ -15,9 +15,18 @@ services:
         sync: false
       - key: GEMINI_API_KEY
         sync: false
+      - key: HF_TOKEN
+        sync: false
       - key: PAYPAL_CLIENT_ID
         sync: false
       - key: PAYPAL_CLIENT_SECRET
         sync: false
       - key: CLARIO_CONTACTS_JSON
         sync: false
+    # Free plan: no persistent disk, so CLARIO_DATA_DIR keeps its default (./data) and
+    # the audit log resets on redeploy and on idle spin-down. Set payee mapping through
+    # CLARIO_CONTACTS_JSON above rather than the data file, so it survives restarts.
+    # To keep the audit trail, move to a paid instance and add:
+    #   - key: CLARIO_DATA_DIR
+    #     value: /var/data
+    #   disk: { name: clario-data, mountPath: /var/data, sizeGB: 1 }

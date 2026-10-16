@@ -87,7 +87,15 @@ async function send(text, meta = {}) {
 
 // ── microphone: press to talk, stop talking, we send ──
 function listen() {
-  if (!SR) { speak('Voice input is not supported in this browser. Please type your request.'); $('text').focus(); return; }
+  if (!SR) {
+    // Browsers withhold the microphone outside a secure context, which looks identical
+    // to an unsupported browser unless we check.
+    speak(window.isSecureContext
+      ? 'Voice input is not supported in this browser. Please type your request.'
+      : 'Voice input needs a secure connection. This page is not served over HTTPS, so the microphone is blocked. Please type your request.');
+    $('text').focus();
+    return;
+  }
   if (listening) return;
   synth?.cancel(); // pressing the button is an intentional barge-in
   const rec = new SR();
