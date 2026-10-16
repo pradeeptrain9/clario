@@ -44,7 +44,13 @@ export interface PayPalAdapter {
 export type ProposedAction =
   | { kind: 'send_money'; payeeSpoken: string; amount: number; currency: string; note?: string }
   | { kind: 'split_bill'; total: number; currency: string; payeesSpoken: string[]; includeSelf: boolean; note?: string }
-  | { kind: 'query'; question: string }       // balance / spending / status — read only
+  | { kind: 'query'; question: string;       // balance / spending / status — read only
+      /** What was asked, when the model could tell. Absent offline; the handler falls back to its own reading. */
+      queryKind?: 'balance' | 'spending' | 'activity';
+      /** How far back, in days. */
+      days?: number;
+      /** A person named in the question, EXACTLY as transcribed. Resolved by payeeMatch, never by the model. */
+      payeeSpoken?: string }
   | { kind: 'review_audit'; question: string }
   | { kind: 'control'; command: 'repeat' | 'stop' | 'slower' | 'faster' | 'help' | 'cancel' | 'yes' | 'no' }
   | { kind: 'unknown'; reason: string };
