@@ -112,9 +112,19 @@ export class Dialog {
     }
   }
 
-  /** An answer to a question only counts if it was clearly heard from the user, not our own voice or a murmur. */
-  private heardClearly(i: TurnInput): boolean {
-    return !i.duringPlayback && i.isFinal !== false && (i.confidence === undefined || i.confidence >= 0.6);
+  /**
+   * An answer to a question only counts if it was clearly heard from the user, not our own voice or a murmur.
+   *
+   * `bareAffirmative` relaxes the confidence floor, and only that. Web Speech scores single short
+   * words poorly and inconsistently, which left users unable to confirm at all while "no" -- checked
+   * before this gate, since cancelling needs no evidence -- always worked. The affirmative vocabulary
+   * is small and phonetically distinct, so a low-confidence "yes" is unlikely to be a misheard
+   * sentence. duringPlayback still applies either way: that guards against the microphone picking up
+   * our own prompt saying the word "yes", which is a different risk from mishearing the user.
+   */
+  private heardClearly(i: TurnInput, bareAffirmative = false): boolean {
+    if (i.duringPlayback || i.isFinal === false) return false;
+    return bareAffirmative || i.confidence === undefined || i.confidence >= 0.6;
   }
 
   private cancelAll(why: string, say = 'Okay. I have cancelled that. Nothing was sent.'): TurnOutput {
@@ -207,7 +217,7 @@ export class Dialog {
     const s = this.s;
     if (s.k !== 'clarify') return this.idle(input);
     if (ctl === 'cancel' || ctl === 'stop') return this.cancelAll('clarify cancelled');
-    if (!this.heardClearly(input)) return this.reply('I did not catch that clearly. Please say it again.', this.awaitingNow());
+    if (!this.heardClearly(input, ctl === 'yes')) return this.reply('I did not catch that clearly. Please say it again.', this.awaitingNow());
 
     let pick: Contact | 'neither' | null = null;
     if (s.mode === 'ambiguous') pick = pickDisambiguated(input.text, s.res);
@@ -242,7 +252,7 @@ export class Dialog {
       return this.applyAssessment({ ...s.base, amount, transcript: { text, confidence: 1, isFinal: true }, resolvedContactId: s.a.payee.id }, s.note);
     }
 
-    if (!this.heardClearly(input)) {
+    if (!this.heardClearly(input, ctl === 'yes')) {
       return this.reply(`I did not catch that clearly. ${promptFor(s.steps[s.i]!)}`, this.awaitingNow(), { band: s.a.band });
     }
 
@@ -353,7 +363,7 @@ export class Dialog {
     const s = this.s;
     if (s.k !== 'confirm_split') return this.idle(input);
     if (ctl === 'cancel' || ctl === 'stop' || ctl === 'no') return this.cancelAll('split declined', 'Okay, no requests were sent.');
-    if (!this.heardClearly(input)) return this.reply('I did not catch that clearly. Say yes to send the requests, or no to cancel.', 'yes_no');
+    if (!this.heardClearly(input, ctl === 'yes')) return this.reply('I did not catch that clearly. Say yes to send the requests, or no to cancel.', 'yes_no');
     if (ctl !== 'yes') return this.reply('Please say just yes, or no.', 'yes_no');
     this.s = { k: 'idle' };
     const sent: string[] = [], failed: string[] = [];

@@ -48,12 +48,43 @@ describe('Dialog: ordinary payments', () => {
     expect(await s.balance()).toBe(start - 15);
   });
 
-  it('ignores low-confidence and partial answers', async () => {
+  it('ignores partial answers', async () => {
+    const s = setup();
+    const start = await s.balance();
+    await toConfirmMaria(s);
+    await s.say('yes', { isFinal: false });
+    expect(await s.balance()).toBe(start);
+  });
+
+  // Web Speech scores single short words poorly, which made confirming by voice impossible
+  // while "no" always worked. The affirmative vocabulary is small enough to trust at low
+  // confidence; everything else is still held to the floor.
+  it('accepts a quiet but unambiguous yes', async () => {
     const s = setup();
     const start = await s.balance();
     await toConfirmMaria(s);
     await s.say('yes', { confidence: 0.3 });
-    await s.say('yes', { isFinal: false });
+    expect(await s.balance()).toBe(start - 15);
+  });
+
+  it('still refuses a low-confidence answer that is not a plain yes', async () => {
+    const s = setup();
+    const start = await s.balance();
+    await toConfirmMaria(s);
+    const out = await s.say('send it to someone else', { confidence: 0.3 });
+    expect(out.say).toMatch(/did not catch/i);
+    expect(await s.balance()).toBe(start);
+  });
+
+  // The quiet-yes exemption must not extend to a passphrase: that is a secret, not a word
+  // from a four-item vocabulary, so a misheard one must never pass.
+  it('still holds the passphrase to the confidence floor', async () => {
+    const s = setup();
+    const start = await s.balance();
+    await s.say('send nine hundred dollars to maria');
+    await s.say('yes', { confidence: 0.3 });
+    const out = await s.say(PASS, { confidence: 0.3 });
+    expect(out.say).toMatch(/did not catch/i);
     expect(await s.balance()).toBe(start);
   });
 
