@@ -3,33 +3,95 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Clario</title>
+  <meta name="color-scheme" content="dark light">
+  <title>Clario — voice payments</title>
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
   <a class="skip" href="#talk">Skip to the talk button</a>
-  <header>
-    <h1>Clario</h1>
+
+  <header class="topbar">
+    <div class="brand">
+      <span class="mark" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <path d="M12 3v10"/><path d="M8 7v6"/><path d="M16 7v6"/><path d="M4 10v1"/><path d="M20 10v1"/>
+          <path d="M6 17.5a6 6 0 0 0 12 0"/><path d="M12 20v1.5"/>
+        </svg>
+      </span>
+      <span class="brand-text">
+        <h1>Clario</h1>
+        <small>Voice payments, spoken aloud</small>
+      </span>
+    </div>
     <p id="mode" class="badge" role="status">Connecting…</p>
   </header>
 
   <main>
-    <button id="talk" type="button" aria-describedby="hint">
-      <span id="talk-label">Talk</span>
-    </button>
-    <p id="hint">Press the button or the space bar, then speak. Say “help” to hear what I can do.</p>
+    <!-- The console: one obvious thing to press, and a plain statement of what it is doing. -->
+    <section class="console" aria-labelledby="console-h">
+      <h2 id="console-h" class="sr-only">Talk to Clario</h2>
+
+      <button id="talk" type="button" aria-describedby="hint">
+        <span class="orb" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+            <rect x="9" y="2" width="6" height="11" rx="3"/>
+            <path d="M5 11a7 7 0 0 0 14 0"/><path d="M12 18v3"/><path d="M8 21h8"/>
+          </svg>
+        </span>
+        <span id="talk-label">Talk</span>
+      </button>
+
+      <p id="hint">Press the button or the space bar, then speak. Say “help” to hear what I can do.</p>
+
+      <!-- Friendly starting points. Each one is the same path as speaking it. -->
+      <div class="chips" role="group" aria-label="Things you can ask">
+        <button type="button" class="chip" data-say="what is my balance">What’s my balance?</button>
+        <button type="button" class="chip" data-say="what did I spend this week">What did I spend?</button>
+        <button type="button" class="chip" data-say="recent activity">Recent activity</button>
+        <button type="button" class="chip" data-say="what did you do">What did you do?</button>
+        <button type="button" class="chip" data-say="help">Help</button>
+      </div>
+    </section>
+
+    <p id="hold" hidden></p>
 
     <form id="typed" autocomplete="off">
       <label for="text">Or type a request</label>
       <div class="row">
-        <input id="text" name="text" type="text" maxlength="500" enterkeyhint="send">
+        <input id="text" name="text" type="text" maxlength="500" enterkeyhint="send"
+               placeholder="Send twenty dollars to Maria">
         <button type="submit">Send</button>
       </div>
     </form>
 
-    <p id="hold" hidden></p>
-    <ol id="log" role="log" aria-live="off" aria-label="Conversation"></ol>
+    <section class="transcript" aria-labelledby="log-h">
+      <div class="transcript-head">
+        <h2 id="log-h">Conversation</h2>
+        <small>Newest first</small>
+      </div>
+      <!-- aria-live stays off on purpose: every line here is already spoken aloud. -->
+      <ol id="log" role="log" aria-live="off" aria-label="Conversation"></ol>
+      <p id="empty" class="empty">Nothing yet. Press <strong>Talk</strong> and say what you would like to do.</p>
+    </section>
+
+    <details class="legend">
+      <summary>What the colours and tones mean</summary>
+      <ul>
+        <li><span class="dot read" aria-hidden="true"></span> <strong>Read-only</strong> — nothing moves money.</li>
+        <li><span class="dot low" aria-hidden="true"></span> <strong>Low</strong> — a plain confirmation.</li>
+        <li><span class="dot medium" aria-hidden="true"></span> <strong>Medium</strong> — read back in full first.</li>
+        <li><span class="dot high" aria-hidden="true"></span> <strong>High</strong> — your spoken passphrase is required.</li>
+        <li><span class="dot severe" aria-hidden="true"></span> <strong>Severe</strong> — passphrase, then a hold you can cancel.</li>
+        <li><span class="dot blocked" aria-hidden="true"></span> <strong>Blocked</strong> — refused; nothing was sent.</li>
+      </ul>
+      <p class="legend-note">Each band also has its own tone, so the risk is audible before any words.</p>
+    </details>
   </main>
+
+  <footer>
+    <p>Test money only. Clario refuses to run against live PayPal.</p>
+  </footer>
 
   <script src="app.js" type="module"></script>
 </body>

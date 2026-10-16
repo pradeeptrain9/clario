@@ -1,6 +1,13 @@
 // Voice front-end. Everything the server says is spoken aloud; nothing is rendered as HTML.
 const $ = (id) => document.getElementById(id);
 const talk = $('talk'), label = $('talk-label'), log = $('log'), hold = $('hold'), modeEl = $('mode');
+const emptyEl = $('empty');
+
+/** Every band carries a word as well as a colour and a tone, so none of the three stands alone. */
+const BAND_LABEL = {
+  read: 'Read-only', low: 'Low risk', medium: 'Medium risk',
+  high: 'High risk', severe: 'Severe risk', blocked: 'Blocked',
+};
 
 let sessionId = null;
 let rate = 1;
@@ -34,9 +41,28 @@ function earcon(band) {
 
 function add(text, cls) {
   const li = document.createElement('li');
-  li.textContent = text;
   if (cls) li.className = cls;
+
+  const who = document.createElement('p');
+  who.className = 'who';
+  who.textContent = cls === 'you' ? 'You' : 'Clario';
+
+  const bubble = document.createElement('p');
+  bubble.className = 'bubble';
+  // textContent, never innerHTML: a payment description comes from the counterparty.
+  bubble.textContent = text;
+  li.append(who, bubble);
+
+  const band = BAND_LABEL[cls];
+  if (band) {
+    const chip = document.createElement('span');
+    chip.className = 'band';
+    chip.textContent = band;
+    li.append(chip);
+  }
+
   log.prepend(li);
+  if (emptyEl) emptyEl.hidden = true;
 }
 
 function speak(text) {
@@ -124,6 +150,9 @@ talk.addEventListener('click', listen);
 document.addEventListener('keydown', (e) => {
   if (e.code === 'Space' && !/^(INPUT|TEXTAREA|BUTTON)$/.test(document.activeElement?.tagName ?? '')) { e.preventDefault(); listen(); }
 });
+for (const chip of document.querySelectorAll('.chip[data-say]')) {
+  chip.addEventListener('click', () => send(chip.dataset.say, { confidence: 1, isFinal: true, duringPlayback: false }));
+}
 $('typed').addEventListener('submit', (e) => {
   e.preventDefault();
   const el = $('text'); const v = el.value; el.value = '';

@@ -1,33 +1,277 @@
+/* Clario. Built for a screen reader first: large type, strong contrast, visible focus, and
+   never colour on its own to carry meaning -- every risk band also carries a word and a tone. */
 :root {
-  --bg: #0b1220; --fg: #f4f7fb; --muted: #aab6c8; --card: #141d30; --line: #2b3a57;
-  --accent: #ffd23f; --accent-fg: #101010; --ok: #5be37d; --warn: #ffb347; --bad: #ff6b6b;
+  --bg: #080d18;
+  --bg-glow: #122043;
+  --surface: #121b2e;
+  --surface-2: #19243c;
+  --fg: #f5f8fc;
+  --muted: #a7b4ca;
+  --line: #2c3a56;
+  --accent: #4da3ff;
+  --accent-fg: #04101f;
+  --read: #5be37d;
+  --low: #7fd1a8;
+  --medium: #ffc861;
+  --high: #ff9b52;
+  --severe: #ff6b6b;
+  --blocked: #ff5470;
+  --radius: 1rem;
 }
 @media (prefers-color-scheme: light) {
-  :root { --bg: #ffffff; --fg: #101828; --muted: #475467; --card: #f2f4f7; --line: #98a2b3; --accent: #1a3fd1; --accent-fg: #ffffff; }
+  :root {
+    --bg: #f6f8fc;
+    --bg-glow: #e4ecfb;
+    --surface: #ffffff;
+    --surface-2: #eef2f9;
+    --fg: #0c1526;
+    --muted: #4a5a73;
+    --line: #c3cedf;
+    --accent: #1550d6;
+    --accent-fg: #ffffff;
+    --read: #117a3d;
+    --low: #1a7a57;
+    --medium: #8a5300;
+    --high: #9a3d00;
+    --severe: #b4231f;
+    --blocked: #b00a2e;
+  }
 }
+
 * { box-sizing: border-box; }
 html { font-size: 20px; }
-body { margin: 0; background: var(--bg); color: var(--fg); font-family: system-ui, -apple-system, "Segoe UI", sans-serif; line-height: 1.5; }
+body {
+  margin: 0;
+  min-height: 100vh;
+  background:
+    radial-gradient(1100px 520px at 50% -12%, var(--bg-glow), transparent 70%),
+    var(--bg);
+  color: var(--fg);
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  line-height: 1.5;
+}
+
+.sr-only {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
 .skip { position: absolute; left: -999px; }
-.skip:focus { left: 1rem; top: 1rem; background: var(--accent); color: var(--accent-fg); padding: .5rem 1rem; z-index: 2; }
-header { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 1rem 1.25rem; border-bottom: 2px solid var(--line); }
-h1 { margin: 0; font-size: 1.6rem; }
-.badge { margin: 0; padding: .25rem .75rem; border: 2px solid var(--line); border-radius: 999px; font-weight: 700; }
-.badge.sandbox { border-color: var(--warn); color: var(--warn); }
-.badge.mock { border-color: var(--ok); color: var(--ok); }
-main { max-width: 42rem; margin: 0 auto; padding: 1.25rem; display: grid; gap: 1rem; }
-#talk { min-height: 9rem; font-size: 2rem; font-weight: 800; border-radius: 1.25rem; border: 4px solid var(--accent); background: var(--accent); color: var(--accent-fg); cursor: pointer; }
-#talk[aria-pressed="true"] { background: var(--bg); color: var(--accent); }
-:focus-visible { outline: 4px solid var(--fg); outline-offset: 3px; }
-#hint, label { color: var(--muted); margin: 0; }
-.row { display: flex; gap: .5rem; margin-top: .25rem; }
-input { flex: 1; min-width: 0; font: inherit; padding: .6rem .8rem; background: var(--card); color: var(--fg); border: 2px solid var(--line); border-radius: .6rem; }
-button[type="submit"] { font: inherit; font-weight: 700; padding: .6rem 1.1rem; border-radius: .6rem; border: 2px solid var(--accent); background: transparent; color: var(--accent); cursor: pointer; }
-#hold { margin: 0; padding: .75rem 1rem; border: 3px solid var(--warn); border-radius: .75rem; font-weight: 700; }
-#log { list-style: none; margin: 0; padding: 0; display: grid; gap: .5rem; }
-#log li { padding: .6rem .9rem; border-radius: .75rem; background: var(--card); border-left: 6px solid var(--line); }
-#log li.you { border-left-color: var(--accent); }
-#log li.read { border-left-color: var(--ok); }
-#log li.low, #log li.medium { border-left-color: var(--warn); }
-#log li.high, #log li.severe, #log li.blocked { border-left-color: var(--bad); }
-@media (prefers-reduced-motion: no-preference) { #talk { transition: background .15s, color .15s; } }
+.skip:focus {
+  left: 1rem; top: 1rem; z-index: 3;
+  background: var(--accent); color: var(--accent-fg);
+  padding: .5rem 1rem; border-radius: .5rem; font-weight: 700;
+}
+:focus-visible { outline: 4px solid var(--accent); outline-offset: 3px; border-radius: .35rem; }
+
+/* ── top bar ─────────────────────────────────────────────── */
+.topbar {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 1rem; flex-wrap: wrap;
+  padding: .9rem 1.25rem;
+  border-bottom: 1px solid var(--line);
+  background: var(--surface);
+}
+.brand { display: flex; align-items: center; gap: .7rem; min-width: 0; }
+.mark {
+  display: grid; place-items: center;
+  width: 2.6rem; height: 2.6rem; flex: none;
+  border-radius: .8rem;
+  background: var(--accent); color: var(--accent-fg);
+}
+.mark svg { width: 1.5rem; height: 1.5rem; }
+.brand-text { display: flex; flex-direction: column; min-width: 0; }
+.brand-text h1 { margin: 0; font-size: 1.25rem; font-weight: 800; letter-spacing: -.01em; }
+.brand-text small { color: var(--muted); font-size: .72rem; }
+
+.badge {
+  margin: 0; padding: .3rem .85rem;
+  border: 2px solid var(--line); border-radius: 999px;
+  font-weight: 700; font-size: .8rem; white-space: nowrap;
+}
+.badge.sandbox { border-color: var(--medium); color: var(--medium); }
+.badge.mock { border-color: var(--read); color: var(--read); }
+
+/* ── layout ──────────────────────────────────────────────── */
+main {
+  max-width: 44rem; margin: 0 auto;
+  padding: 1.5rem 1.25rem 2rem;
+  display: grid; gap: 1.25rem;
+}
+
+/* ── the console ─────────────────────────────────────────── */
+.console {
+  display: grid; justify-items: center; gap: 1rem;
+  padding: 1.75rem 1.25rem;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 1.5rem;
+}
+
+#talk {
+  position: relative;
+  display: grid; justify-items: center; align-content: center; gap: .55rem;
+  width: 11.5rem; height: 11.5rem;
+  border-radius: 50%;
+  border: none;
+  background: var(--accent); color: var(--accent-fg);
+  font: inherit; font-size: 1.05rem; font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 10px 30px -10px color-mix(in srgb, var(--accent) 65%, transparent);
+}
+#talk .orb { display: grid; place-items: center; }
+#talk .orb svg { width: 3.1rem; height: 3.1rem; }
+#talk:hover { background: color-mix(in srgb, var(--accent) 88%, var(--fg)); }
+
+/* Listening is the one state that must be unmistakable at a glance. */
+#talk[aria-pressed="true"] {
+  background: var(--surface-2);
+  color: var(--accent);
+  box-shadow: 0 0 0 4px var(--accent), 0 12px 34px -12px color-mix(in srgb, var(--accent) 60%, transparent);
+}
+/* A ring that only exists while listening, so it cannot be mistaken for decoration. */
+#talk[aria-pressed="true"]::after {
+  content: "";
+  position: absolute; inset: -1rem;
+  border-radius: 50%;
+  border: 3px solid color-mix(in srgb, var(--accent) 55%, transparent);
+}
+@media (prefers-reduced-motion: no-preference) {
+  #talk { transition: background .15s, color .15s, box-shadow .15s; }
+  #talk[aria-pressed="true"]::after { animation: ring 1.6s ease-out infinite; }
+  @keyframes ring {
+    0%   { transform: scale(.92); opacity: .9; }
+    100% { transform: scale(1.18); opacity: 0; }
+  }
+}
+
+#hint { margin: 0; color: var(--muted); text-align: center; max-width: 26rem; font-size: .9rem; }
+
+/* ── quick asks ──────────────────────────────────────────── */
+.chips { display: flex; flex-wrap: wrap; gap: .5rem; justify-content: center; }
+.chip {
+  font: inherit; font-size: .82rem; font-weight: 600;
+  padding: .45rem .9rem;
+  border: 2px solid var(--line); border-radius: 999px;
+  background: var(--surface-2); color: var(--fg);
+  cursor: pointer;
+}
+.chip:hover { border-color: var(--accent); color: var(--accent); }
+
+/* ── cooling-off hold ────────────────────────────────────── */
+#hold {
+  margin: 0; padding: .9rem 1.1rem;
+  border: 3px solid var(--medium); border-radius: var(--radius);
+  background: color-mix(in srgb, var(--medium) 12%, var(--surface));
+  color: var(--fg); font-weight: 700;
+}
+
+/* ── typed fallback ──────────────────────────────────────── */
+#typed { display: grid; gap: .35rem; }
+label { color: var(--muted); font-size: .85rem; }
+.row { display: flex; gap: .5rem; }
+input {
+  flex: 1; min-width: 0; font: inherit;
+  padding: .7rem .9rem;
+  background: var(--surface); color: var(--fg);
+  border: 2px solid var(--line); border-radius: .7rem;
+}
+input::placeholder { color: var(--muted); opacity: .8; }
+input:focus { border-color: var(--accent); }
+button[type="submit"] {
+  font: inherit; font-weight: 700;
+  padding: .7rem 1.2rem;
+  border-radius: .7rem;
+  border: 2px solid var(--accent);
+  background: transparent; color: var(--accent);
+  cursor: pointer;
+}
+button[type="submit"]:hover { background: var(--accent); color: var(--accent-fg); }
+
+/* ── transcript ──────────────────────────────────────────── */
+.transcript-head { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; }
+.transcript-head h2 { margin: 0; font-size: 1rem; letter-spacing: .02em; text-transform: uppercase; color: var(--muted); }
+.transcript-head small { color: var(--muted); font-size: .75rem; }
+.empty { margin: .75rem 0 0; color: var(--muted); font-size: .9rem; }
+
+#log { list-style: none; margin: .75rem 0 0; padding: 0; display: grid; gap: .6rem; }
+#log li { display: grid; gap: .3rem; }
+#log .who { font-size: .72rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+#log .bubble {
+  padding: .7rem 1rem;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-left: 6px solid var(--line);
+  border-radius: .9rem;
+  overflow-wrap: anywhere;
+}
+
+/* What you said, set apart from what Clario answered. */
+#log li.you { justify-items: end; }
+#log li.you .bubble {
+  background: color-mix(in srgb, var(--accent) 16%, var(--surface));
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--line));
+  border-left-width: 1px;
+  border-right: 6px solid var(--accent);
+  max-width: 85%;
+}
+
+/* The band chip carries the word, so colour is never the only signal. */
+.band {
+  justify-self: start;
+  width: max-content;
+  margin-top: .45rem;
+  padding: .1rem .55rem;
+  border-radius: 999px;
+  font-size: .68rem; font-weight: 800; letter-spacing: .04em; text-transform: uppercase;
+  border: 2px solid currentColor;
+}
+#log li.read    .bubble { border-left-color: var(--read); }
+#log li.low     .bubble { border-left-color: var(--low); }
+#log li.medium  .bubble { border-left-color: var(--medium); }
+#log li.high    .bubble { border-left-color: var(--high); }
+#log li.severe  .bubble { border-left-color: var(--severe); }
+#log li.blocked .bubble { border-left-color: var(--blocked); }
+#log li.read    .band { color: var(--read); }
+#log li.low     .band { color: var(--low); }
+#log li.medium  .band { color: var(--medium); }
+#log li.high    .band { color: var(--high); }
+#log li.severe  .band { color: var(--severe); }
+#log li.blocked .band { color: var(--blocked); }
+
+/* ── legend ──────────────────────────────────────────────── */
+.legend {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: .4rem .95rem;
+}
+.legend summary { cursor: pointer; padding: .5rem 0; font-weight: 700; font-size: .9rem; }
+.legend ul { list-style: none; margin: .25rem 0 .5rem; padding: 0; display: grid; gap: .45rem; font-size: .85rem; }
+.legend li { display: flex; align-items: baseline; gap: .55rem; }
+.legend-note { margin: 0 0 .6rem; color: var(--muted); font-size: .8rem; }
+.dot { width: .7rem; height: .7rem; border-radius: 50%; flex: none; transform: translateY(.1rem); }
+.dot.read { background: var(--read); }
+.dot.low { background: var(--low); }
+.dot.medium { background: var(--medium); }
+.dot.high { background: var(--high); }
+.dot.severe { background: var(--severe); }
+.dot.blocked { background: var(--blocked); }
+
+footer { border-top: 1px solid var(--line); padding: 1rem 1.25rem 2rem; }
+footer p { margin: 0 auto; max-width: 44rem; color: var(--muted); font-size: .78rem; text-align: center; }
+
+/* ── small screens: the button stays the biggest thing on the page ── */
+@media (max-width: 30rem) {
+  html { font-size: 19px; }
+  main { padding: 1.1rem 1rem 1.5rem; }
+  .console { padding: 1.35rem .9rem; border-radius: 1.25rem; }
+  #talk { width: 10.5rem; height: 10.5rem; }
+  .row { flex-wrap: wrap; }
+  button[type="submit"] { width: 100%; }
+}
+
+/* Honour a stated preference for more contrast. */
+@media (prefers-contrast: more) {
+  :root { --line: #6b7c99; --muted: #d4dced; }
+  #log .bubble { border-width: 2px; border-left-width: 6px; }
+}

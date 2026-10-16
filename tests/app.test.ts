@@ -42,7 +42,8 @@ describe('HTTP API', () => {
     const r = await fetch(base + '/');
     expect(r.status).toBe(200);
     expect(r.headers.get('content-security-policy')).toContain("default-src 'self'");
-    expect(await r.text()).toContain('<title>Clario</title>');
+    // Enough to prove the right page is served, without pinning the tagline in the title.
+    expect(await r.text()).toContain('<title>Clario');
   });
 
   it('rejects unknown sessions, bad bodies, wrong content type and cross-origin posts', async () => {
