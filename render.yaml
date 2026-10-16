@@ -9,6 +9,11 @@ services:
         value: sandbox
       - key: HOST
         value: 0.0.0.0
+      # The Dockerfile pins PORT=7860 for Hugging Face Spaces. Render ignores EXPOSE and
+      # otherwise port-scans the container, so set its port explicitly here: a service
+      # env var beats the image's ENV, and a set PORT skips detection altogether.
+      - key: PORT
+        value: 10000
       - key: PAYPAL_API_BASE
         value: https://api-m.sandbox.paypal.com
       - key: CLARIO_PASSPHRASE
