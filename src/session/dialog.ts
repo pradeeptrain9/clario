@@ -47,6 +47,9 @@ type State =
   | { k: 'confirm_split'; shares: { to: Contact; amount: number }[]; currency: string; note: string; total: number }
   | { k: 'cooling'; id: string; timer: unknown; until: number; payee: Contact; facts: ActionFacts; a: Ready; note: string; done: string[]; steps: Step[] };
 
+/** Words that make up a question rather than a name, stripped before matching a payee. */
+const QUERY_WORDS = /\b(what|whats|how|much|many|did|do|does|i|me|my|you|your|we|show|tell|list|give|get|was|were|is|are|the|a|an|of|in|on|for|with|to|from|and|or|any|all|some|recent|recently|latest|last|history|transaction|transactions|activity|payment|payments|paid|pay|sent|send|spend|spent|spending|balance|funds|money|total|today|yesterday|week|weeks|month|months|year|years|day|days|please|about|between)\b/g;
+
 const HELP = 'You can say things like: send twenty dollars to Maria. Split ninety dollars with Jon and Priya. What is my balance? What did I spend this week? Or say repeat, slower, faster, or cancel.';
 const money = (n: number, c: string) => moneyToWords(n, c);
 const round2 = (n: number) => Math.round(n * 100) / 100;
@@ -381,6 +384,26 @@ export class Dialog {
   // ───────────────────────── read-only ─────────────────────────
 
   /** Names come from the network, so they are screened before being spoken. */
+  /**
+   * A read-only question may name someone: "recent payments with John", "what did I send Maria".
+   * Strip the words that belong to the question so only a possible name is matched, then reuse the
+   * same matcher payments use -- including its refusal to choose between sound-alikes.
+   */
+  private whichPayee(t: string, contacts: Contact[]): PayeeResolution | null {
+    const rest = t.replace(QUERY_WORDS, ' ').replace(/\s+/g, ' ').trim();
+    if (!rest) return null;
+    const res = resolvePayee(rest, contacts);
+    if (res.status === 'unknown') return null;
+    // Reading history moves no money, so an exact name settles it even next to a sound-alike.
+    // The refusal to choose is there to stop a payment going to the wrong Jon, not to stop a
+    // question being answered; without this, asking about John could never be answered at all.
+    const [top, second] = res.candidates;
+    if (res.status === 'ambiguous' && top && top.score >= 0.95 && (!second || top.score > second.score)) {
+      return { ...res, status: 'resolved', chosen: top.contact };
+    }
+    return res;
+  }
+
   private speakName(name: string): string {
     const scan = scanUntrusted(name);
     return scan.suspicious ? 'a sender whose name looks suspicious' : scan.sanitized;
@@ -390,13 +413,21 @@ export class Dialog {
     const t = q.toLowerCase();
     const snap = await this.d.account.snapshot();
     const cur = snap.balances[0]?.currency ?? 'USD';
+    const who = this.whichPayee(t, snap.contacts);
+    // Naming the wrong sound-alike would misreport someone's history, so ask rather than guess.
+    if (who?.status === 'ambiguous') {
+      const names = who.candidates.map((c) => c.contact.name);
+      return this.reply(`I know ${names.join(' and ')}, and they sound alike. Which one did you mean?`, 'command');
+    }
+    const only = who?.chosen ?? who?.candidates[0]?.contact;
+    const withWhom = only ? ` with ${only.name}` : '';
 
     if (/\b(balance|funds|how much (money|cash)?.{0,20}\b(have|got|left|available))\b/.test(t)) {
       if (!snap.balances.length) return this.reply('I could not find a balance on this account.', 'command');
-      // Say when the figure already accounts for a payment PayPal has not caught up on, so it does
-      // not look wrong against PayPal's own screens.
+      // Mention a payment that is already deducted, so the figure is not a surprise -- without
+      // narrating PayPal's reporting, which sounds like a fault to someone who cannot see it.
       const lag = snap.pendingOut > 0
-        ? ` That already takes off ${money(snap.pendingOut, cur)} you sent recently, which PayPal has not finished recording.`
+        ? ` That already counts ${money(snap.pendingOut, cur)} you sent a moment ago.`
         : '';
       return this.reply(`Your PayPal balance is ${snap.balances.map((b) => money(b.available, b.currency)).join(', and ')}.${lag}`, 'command', { band: 'read' });
     }
@@ -406,20 +437,23 @@ export class Dialog {
 
     if (/\b(spent|spend|spending)\b/.test(t)) {
       const cutoff = this.now().getTime() - days * 86_400_000;
-      const out = snap.history.filter((x) => x.direction === 'out' && x.status === 'completed' && Date.parse(x.date) >= cutoff);
+      const out = snap.history.filter((x) => x.direction === 'out' && x.status === 'completed'
+        && Date.parse(x.date) >= cutoff && (!only || x.contactId === only.id));
       const total = out.reduce((a, x) => a + x.amount, 0);
-      if (!out.length) return this.reply(`I see no spending ${label}.`, 'command', { band: 'read' });
+      const count = `${out.length} ${out.length === 1 ? 'payment' : 'payments'}`;
+      if (!out.length) return this.reply(`I see no payments${withWhom} ${label}.`, 'command', { band: 'read' });
+      if (only) return this.reply(`You sent ${this.speakName(only.name)} ${money(round2(total), cur)} ${label}, across ${count}.`, 'command', { band: 'read' });
       const top = topPayees(out).slice(0, 3).map(([n, v]) => `${this.speakName(n)}, ${money(round2(v), cur)}`).join('; ');
-      return this.reply(`You spent ${money(round2(total), cur)} ${label}, across ${out.length} ${out.length === 1 ? 'payment' : 'payments'}. Biggest: ${top}.`, 'command', { band: 'read' });
+      return this.reply(`You spent ${money(round2(total), cur)} ${label}, across ${count}. Biggest: ${top}.`, 'command', { band: 'read' });
     }
 
-    if (!/\b(recent|latest|last|history|transactions?|activity|payments?)\b/.test(t)) {
+    if (!/\b(recent|latest|last|history|transactions?|activity|payments?|sent|send|paid)\b/.test(t)) {
       return this.reply('I can tell you your balance, your recent activity, or what you spent. Which would you like?', 'command');
     }
-    const recent = snap.history.filter((x) => x.status === 'completed').slice(0, 3);
-    if (!recent.length) return this.reply('I do not see any recent activity.', 'command', { band: 'read' });
+    const recent = snap.history.filter((x) => x.status === 'completed' && (!only || x.contactId === only.id)).slice(0, 3);
+    if (!recent.length) return this.reply(`I do not see any recent activity${withWhom}.`, 'command', { band: 'read' });
     const lines = recent.map((x) => `${x.direction === 'out' ? 'Paid' : 'Received'} ${money(x.amount, x.currency)} ${x.direction === 'out' ? 'to' : 'from'} ${this.speakName(x.counterpartyName)}`);
-    return this.reply(`Your latest activity: ${lines.join('. ')}.`, 'command', { band: 'read' });
+    return this.reply(`Your latest activity${withWhom}: ${lines.join('. ')}.`, 'command', { band: 'read' });
   }
 
   private reviewAudit(): TurnOutput {

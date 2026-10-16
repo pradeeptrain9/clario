@@ -313,3 +313,48 @@ describe('GuardedExecutor', () => {
     expect(JSON.stringify(s.audit.all())).not.toContain(PASS);
   });
 });
+
+describe('Dialog: questions about one person', () => {
+  // Reported: "recent transaction with John" listed everybody's payments. The query handler
+  // never looked at a name, so every history question answered globally.
+  it('limits recent activity to the person named', async () => {
+    const s = setup();
+    const out = await s.say('recent transactions with maria');
+    expect(out.say).toMatch(/with Maria/i);
+    expect(out.say).not.toMatch(/Brightside|Grocery|Harvest/i);
+  });
+
+  it('limits a spending total to the person named', async () => {
+    const s = setup();
+    const out = await s.say('how much did I spend with john');
+    expect(out.say).toMatch(/You sent John/i);
+  });
+
+  it('still answers globally when no one is named', async () => {
+    const s = setup();
+    const out = await s.say('what did I spend last month');
+    expect(out.say).toMatch(/You spent/i);
+    expect(out.say).not.toMatch(/You sent/i);
+  });
+
+  // Reading history moves no money, so an exact name settles it next to a sound-alike.
+  it('answers about John without asking, though Jon sounds the same', async () => {
+    const s = setup();
+    const out = await s.say('recent transactions with john');
+    expect(out.say).toMatch(/with John/i);
+    expect(out.say).not.toMatch(/which one/i);
+  });
+
+  // Without an exact name to go on, it still refuses to pick.
+  it('asks when the name matches neither of two sound-alikes exactly', async () => {
+    const s = setup();
+    const out = await s.say('recent transactions with jonn');
+    expect(out.say).toMatch(/sound alike|which one/i);
+  });
+
+  it('says so plainly when there is nothing with that person', async () => {
+    const s = setup();
+    const out = await s.say('recent transactions with aaron');
+    expect(out.say).toMatch(/do not see any recent activity with Aaron/i);
+  });
+});
