@@ -1,3 +1,4 @@
+import { join } from 'node:path';
 import { makeUnderstand } from './ai/understand.js';
 import { createApp } from './app.js';
 import { config, hasGemini } from './config.js';
@@ -10,9 +11,10 @@ import { hashPassphrase } from './session/pin.js';
 import type { PayPalAdapter } from './types.js';
 
 const DEMO_PASSPHRASE = 'blue harbor seven';
+const dataDir = config.CLARIO_DATA_DIR;
 
 const adapter: PayPalAdapter = config.MODE === 'sandbox'
-  ? new SandboxPayPal(new PayPalClient({ baseUrl: config.PAYPAL_API_BASE, clientId: config.PAYPAL_CLIENT_ID, clientSecret: config.PAYPAL_CLIENT_SECRET }))
+  ? new SandboxPayPal(new PayPalClient({ baseUrl: config.PAYPAL_API_BASE, clientId: config.PAYPAL_CLIENT_ID, clientSecret: config.PAYPAL_CLIENT_SECRET }), join(dataDir, 'contacts.json'))
   : new MockPayPal();
 
 const spoken = config.CLARIO_PASSPHRASE || (config.MODE === 'mock' ? DEMO_PASSPHRASE : '');
@@ -20,7 +22,7 @@ const app = createApp({
   mode: config.MODE,
   account: new Account(adapter),
   understand: makeUnderstand(config),
-  audit: new AuditLog('data/audit.jsonl'),
+  audit: new AuditLog(join(dataDir, 'audit.jsonl')),
   geminiEnabled: hasGemini(),
   passphrase: spoken ? hashPassphrase(spoken) : undefined,
 });
@@ -29,6 +31,7 @@ const server = app.listen(config.PORT, config.HOST, () => {
   console.log(`Clario listening on http://${config.HOST}:${config.PORT}`);
   console.log(`  mode:       ${config.MODE} (${adapter.kind} PayPal)`);
   console.log(`  language:   ${hasGemini() ? `Gemini (${config.GEMINI_FAST_MODEL})` : 'offline rule parser (no GEMINI_API_KEY)'}`);
+  console.log(`  data dir:   ${dataDir} (audit log + contacts; mount a volume here or they reset on redeploy)`);
   if (!spoken) console.log('  passphrase: NOT SET. Payments that need a passphrase will be refused. Set CLARIO_PASSPHRASE.');
   else if (!config.CLARIO_PASSPHRASE) console.log(`  passphrase: demo phrase "${DEMO_PASSPHRASE}" (mock mode only)`);
   else console.log('  passphrase: set');

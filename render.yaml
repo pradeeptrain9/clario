@@ -23,3 +23,12 @@ services:
         sync: false
       - key: CLARIO_CONTACTS_JSON
         sync: false
+      - key: CLARIO_DATA_DIR
+        value: /var/data
+    # The audit log is the payment record; without a disk it resets on redeploy.
+    # Render disks need a paid instance type -- on the free plan, delete this block
+    # and set CLARIO_DATA_DIR back to `data`, accepting that history resets.
+    disk:
+      name: clario-data
+      mountPath: /var/data
+      sizeGB: 1

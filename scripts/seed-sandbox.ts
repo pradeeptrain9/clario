@@ -1,4 +1,5 @@
 import { mkdir, writeFile } from 'node:fs/promises';
+import { join } from 'node:path';
 import { config } from '../src/config.js';
 import { DEMO_CONTACTS } from '../src/mock/dataset.js';
 import { SandboxPayPal } from '../src/paypal/adapter.js';
@@ -8,13 +9,14 @@ import { PayPalClient } from '../src/paypal/client.js';
 //   npm run seed-sandbox                 writes data/contacts.json (the voice-name -> sandbox email map)
 //   npm run seed-sandbox -- --payouts    ALSO sends a few small payouts so spending history exists.
 //                                        Sandbox money only; refuses to run against a non-sandbox host.
-// Edit data/contacts.json afterwards to point names at your own sandbox personal accounts.
+// Edit the contacts file afterwards to point names at your own sandbox personal accounts.
 const withPayouts = process.argv.includes('--payouts');
 
-await mkdir('data', { recursive: true });
-await writeFile('data/contacts.json', JSON.stringify(DEMO_CONTACTS, null, 2) + '\n', { flag: 'wx' }).then(
-  () => console.log('Wrote data/contacts.json'),
-  (e: NodeJS.ErrnoException) => { if (e.code !== 'EEXIST') throw e; console.log('data/contacts.json already exists; left untouched.'); },
+const contactsFile = join(config.CLARIO_DATA_DIR, 'contacts.json');
+await mkdir(config.CLARIO_DATA_DIR, { recursive: true });
+await writeFile(contactsFile, JSON.stringify(DEMO_CONTACTS, null, 2) + '\n', { flag: 'wx' }).then(
+  () => console.log(`Wrote ${contactsFile}`),
+  (e: NodeJS.ErrnoException) => { if (e.code !== 'EEXIST') throw e; console.log(`${contactsFile} already exists; left untouched.`); },
 );
 
 if (!withPayouts) process.exit(0);

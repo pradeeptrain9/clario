@@ -7,6 +7,8 @@ const schema = z.object({
   HOST: z.string().default('127.0.0.1'),
   /** Spoken passphrase for high-risk payments. Mock mode falls back to a demo phrase; sandbox has none unless set. */
   CLARIO_PASSPHRASE: z.string().default(''),
+  /** Where the audit log and contacts file live. Point it at a mounted volume so they survive redeploys. */
+  CLARIO_DATA_DIR: z.string().default('data'),
   GEMINI_API_KEY: z.string().default(''),
   GEMINI_FAST_MODEL: z.string().default('gemini-flash-latest'),
   GEMINI_REVIEW_MODEL: z.string().default('gemini-pro-latest'),
