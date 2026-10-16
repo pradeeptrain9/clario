@@ -4,6 +4,9 @@ import { z } from 'zod';
 const schema = z.object({
   MODE: z.enum(['mock', 'sandbox']).default('mock'),
   PORT: z.coerce.number().int().default(3000),
+  HOST: z.string().default('127.0.0.1'),
+  /** Spoken passphrase for high-risk payments. Mock mode falls back to a demo phrase; sandbox has none unless set. */
+  CLARIO_PASSPHRASE: z.string().default(''),
   GEMINI_API_KEY: z.string().default(''),
   GEMINI_FAST_MODEL: z.string().default('gemini-flash-latest'),
   GEMINI_REVIEW_MODEL: z.string().default('gemini-pro-latest'),
