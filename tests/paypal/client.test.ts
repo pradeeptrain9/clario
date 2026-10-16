@@ -64,6 +64,8 @@ describe('PayPalClient', () => {
   it('gives an actionable message on 403 (Transaction Search not enabled)', async () => {
     const { client } = setup(() => json(403, { name: 'NOT_AUTHORIZED' }));
     await expect(client.request('GET', '/v1/reporting/balances')).rejects.toThrow(/Transaction Search/);
+    await expect(client.request('POST', '/v1/payments/payouts', { body: {}, requestId: 'k' })).rejects.toThrow(/Payouts/);
+    await expect(client.request('GET', '/v2/invoicing/invoices')).rejects.toThrow(/Invoicing/);
   });
 });
 

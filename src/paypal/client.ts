@@ -62,7 +62,7 @@ export class PayPalClient {
       }
       const text = await res.text();
       const json = text ? safeJson(text) : undefined;
-      if (!res.ok) throw new PayPalError(res.status, json, describe(res.status, json));
+      if (!res.ok) throw new PayPalError(res.status, json, describe(res.status, json, path));
       return json as T;
     }
   }
@@ -70,8 +70,16 @@ export class PayPalClient {
 
 function safeJson(t: string): unknown { try { return JSON.parse(t); } catch { return t; } }
 
-function describe(status: number, body: unknown): string {
+function describe(status: number, body: unknown, path = ''): string {
   const b = body as { name?: string; message?: string } | undefined;
-  if (status === 403) return 'PayPal refused the request (403). Is Transaction Search enabled on your sandbox app?';
+  if (status === 403) {
+    // A 403 means the sandbox app lacks a feature; name the one this endpoint needs.
+    const feature = path.includes('/reporting/') ? 'Transaction Search'
+      : path.includes('/payouts') ? 'Payouts'
+      : path.includes('/invoicing') ? 'Invoicing' : null;
+    return feature
+      ? `PayPal refused the request (403). Is ${feature} enabled on your sandbox REST app?`
+      : 'PayPal refused the request (403). Check the features enabled on your sandbox REST app.';
+  }
   return `PayPal ${status}${b?.name ? ` ${b.name}` : ''}${b?.message ? `: ${b.message}` : ''}`;
 }

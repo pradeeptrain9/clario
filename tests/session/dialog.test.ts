@@ -189,6 +189,17 @@ describe('Dialog: blocks and read-only questions', () => {
     expect(out.say).toMatch(/balance is/i);
   });
 
+  it.each(["how much money I've got right now", 'how much do I have left', 'what funds are available'])(
+    'recognises "%s" as a balance question', async (q) => {
+      const out = await setup().say(q);
+      expect(out.say).toMatch(/balance is/i);
+    });
+
+  it('says what it can answer instead of guessing at an unrecognised question', async () => {
+    const out = await setup().say('what is the weather like');
+    expect(out.say).not.toMatch(/latest activity|balance is/i);
+  });
+
   it('summarises spending', async () => {
     const out = await setup().say('how much did I spend this month');
     expect(out.say).toMatch(/You spent/);
