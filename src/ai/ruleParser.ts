@@ -54,7 +54,7 @@ export function ruleParse(text: string): ProposedAction {
     if (payeeSpoken) return { kind: 'send_money', payeeSpoken, amount: amount.value, currency: 'USD', note: forMatch?.[1] };
   }
 
-  if (/\b(balance|how much (money )?do i have|spent|spend|spending|recent|last|latest|history|transactions?|activity)\b/.test(t)) {
+  if (/\b(balance|funds|how much (money|cash)?.{0,20}\b(have|got|left|available)|spent|spend|spending|recent|last|latest|history|transactions?|activity)\b/.test(t)) {
     return { kind: 'query', question: text };
   }
   if (/\b(audit|why (was|did)|blocked|what did you (do|block))\b/.test(t)) return { kind: 'review_audit', question: text };

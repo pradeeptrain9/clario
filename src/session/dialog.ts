@@ -381,7 +381,7 @@ export class Dialog {
     const snap = await this.d.account.snapshot();
     const cur = snap.balances[0]?.currency ?? 'USD';
 
-    if (/\b(balance|how much (money )?do i have)\b/.test(t)) {
+    if (/\b(balance|funds|how much (money|cash)?.{0,20}\b(have|got|left|available))\b/.test(t)) {
       if (!snap.balances.length) return this.reply('I could not find a balance on this account.', 'command');
       return this.reply(`Your PayPal balance is ${snap.balances.map((b) => money(b.available, b.currency)).join(', and ')}.`, 'command', { band: 'read' });
     }
@@ -398,6 +398,9 @@ export class Dialog {
       return this.reply(`You spent ${money(round2(total), cur)} ${label}, across ${out.length} payments. Biggest: ${top}.`, 'command', { band: 'read' });
     }
 
+    if (!/\b(recent|latest|last|history|transactions?|activity|payments?)\b/.test(t)) {
+      return this.reply('I can tell you your balance, your recent activity, or what you spent. Which would you like?', 'command');
+    }
     const recent = snap.history.filter((x) => x.status === 'completed').slice(0, 3);
     if (!recent.length) return this.reply('I do not see any recent activity.', 'command', { band: 'read' });
     const lines = recent.map((x) => `${x.direction === 'out' ? 'Paid' : 'Received'} ${money(x.amount, x.currency)} ${x.direction === 'out' ? 'to' : 'from'} ${this.speakName(x.counterpartyName)}`);
