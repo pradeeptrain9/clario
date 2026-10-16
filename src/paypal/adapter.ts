@@ -43,6 +43,9 @@ export class SandboxPayPal implements PayPalAdapter {
 
   /** PayPal has no contacts API. A local file maps spoken names to sandbox emails. */
   async getContacts(): Promise<Contact[]> {
+    // CLARIO_CONTACTS_JSON lets hosts without a persistent disk (Render, Hugging Face) set contacts as an env var.
+    const inline = process.env.CLARIO_CONTACTS_JSON;
+    if (inline) { try { return JSON.parse(inline) as Contact[]; } catch { console.warn('CLARIO_CONTACTS_JSON is not valid JSON; falling back to file.'); } }
     try { return JSON.parse(await readFile(this.contactsPath, 'utf8')) as Contact[]; } catch { return DEMO_CONTACTS; }
   }
 

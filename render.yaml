@@ -1,0 +1,23 @@
+services:
+  - type: web
+    name: clario
+    runtime: docker
+    plan: free
+    healthCheckPath: /api/health
+    envVars:
+      - key: MODE
+        value: sandbox
+      - key: HOST
+        value: 0.0.0.0
+      - key: PAYPAL_API_BASE
+        value: https://api-m.sandbox.paypal.com
+      - key: CLARIO_PASSPHRASE
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: PAYPAL_CLIENT_ID
+        sync: false
+      - key: PAYPAL_CLIENT_SECRET
+        sync: false
+      - key: CLARIO_CONTACTS_JSON
+        sync: false
